@@ -1,5 +1,6 @@
 import lxml.etree as etree
-import os, re, sys, json
+import json
+import operator
 from random import random
 
 
@@ -8,25 +9,41 @@ allScreen = []
 unusedScreen = []
 
 items = dict()
-
-
-class Complex:
-    def __init__(self, realpart, imagpart):
-        self.r = realpart
-        self.i = imagpart
+screenItems = dict()
 
 class Screen:
     def __init__(self, id, type):
         self.id = id
         self.type = type
+        self.count = 0
+    def __str__(self):
+        return f"ID: {self.id}, Type: {self.type}, Count: {self.count}"
 
 
-def count_this(item):
+def count_this(screenID):
     global items
-    if item not in items.keys():
-        items[item] = 0
+    if screenID not in items.keys():
+        items[screenID] = 0
     else:
-        items[item] += 1
+        items[screenID] += 1
+
+def initialise_class(screenID, ScreenType):
+    global screenItems
+    if screenID not in screenItems.keys():
+        screenObject = Screen(screenID, ScreenType)
+        #print(screenObject)
+        screenItems[screenID] = screenObject
+    else:
+        print("Error: initialise_class")
+
+def count_this_class(screenID):
+    global screenItems
+    if screenID not in screenItems.keys():
+        print("Error: count_this_class:", screenID)
+    else:
+        screenObject = screenItems[screenID]
+        screenObject.count += 1
+        screenItems[screenID] = screenObject
 
 def main():
 
@@ -44,6 +61,7 @@ def main():
         #print("ScreenType",ScreenType)
         allScreen.append(screenID)
         count_this(screenID)
+        initialise_class(screenID, ScreenType)
 
     #Referenced Screens - Check 1
     for screen in screens:
@@ -52,6 +70,7 @@ def main():
         for b in btags:
             # print(" - ",b)
             count_this(b)
+            count_this_class(b)
             if not b in referencedScreen:
                 #print("Item is in array already.")
                 referencedScreen.append(b)
@@ -60,6 +79,7 @@ def main():
     forwardingSwitchScreenScreen = doc.xpath("//ns:screen[@type='ForwardingSwitchScreen']/ns:parameter-list[@id='Mappings']/ns:component/ns:parameter[@id='Screen']/@value",namespaces=namespaces)
     for screen in forwardingSwitchScreenScreen:
         count_this(screen)
+        count_this_class(screen)
         if not screen in referencedScreen:
             #print("Item is in array already.")
             referencedScreen.append(screen)
@@ -69,6 +89,7 @@ def main():
     for screen in mainScreen:
         #print("mainScreen", screen)
         count_this(screen)
+        count_this_class(screen)
         if not screen in referencedScreen:
             #print("Item is in array already.")
             referencedScreen.append(screen)
@@ -78,15 +99,12 @@ def main():
     for screen in homepageScreen:
         #print("homepageScreen", screen)
         count_this(screen)
+        count_this_class(screen)
         if not screen in referencedScreen:
             #print("Item is in array already.")
             referencedScreen.append(screen)
     
     #Unused Screens
-
-    #unusedScreen = set(allScreen) ^ set(referencedScreen)
-    #unusedScreen = sorted(unusedScreen)
-
     for screen in allScreen:
         if screen not in referencedScreen:
             unusedScreen.append(screen) 
@@ -103,14 +121,23 @@ def main():
     #for unusedScreenitem in unusedScreen:
     #    print(unusedScreenitem)
 
-
     
-    sortedDict = {k: v for k, v in sorted(items.items(), key=lambda item: item[1])}
-    print(json.dumps(sortedDict, indent='\t'))
+    # sortedDict = {k: v for k, v in sorted(items.items(), key=lambda item: item[1])}
+    # print(json.dumps(sortedDict, indent='\t'))
+
+    # print()
+    # print("Total Screen Count:",len(allScreen))
+    # print("Referenced Screen Count:",len(referencedScreen))
+    # print("(Potential) Unused Screen Count:",len(unusedScreen))
+
+    # for key in screenItems:
+    #     print(screenItems[key])
 
     print()
-    print("Total Screen Count:",len(allScreen))
-    print("Referenced Screen Count:",len(referencedScreen))
-    print("(Potential) Unused Screen Count:",len(unusedScreen))
+    print()
+
+
+    for screenItem in (sorted(screenItems.values(), key=operator.attrgetter('count'))):
+        print(screenItem)
 
 if __name__ == '__main__': main()
