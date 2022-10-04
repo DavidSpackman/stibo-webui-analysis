@@ -1,11 +1,10 @@
 import lxml.etree as etree
-import json
 import operator
-from random import random
 
 referencedScreen = []
 allScreen = []
 unusedScreen = []
+errors = []
 screenItems = dict()
 
 namespaces = {'ns':'http://stibosystems.com/step/portal-config'}
@@ -25,12 +24,13 @@ def initialise_class(screenID, ScreenType):
         #print(screenObject)
         screenItems[screenID] = screenObject
     else:
-        print("Error: initialise_class")
+        errors.append("Function: initialise_class, ScreenID: " + screenID)
 
 def count_this_class(screenID):
     global screenItems
+    global errors
     if screenID not in screenItems.keys():
-        print("Error: count_this_class:", screenID)
+        errors.append("Function: count_this_class, ScreenID: " + screenID)
     else:
         screenObject = screenItems[screenID]
         screenObject.count += 1
@@ -94,7 +94,7 @@ def determineReferencedScreens(doc, screens):
 def main():
 
     doc = etree.parse('webUI.xml')
-    screens = doc.xpath("//ns:screen[not(@type = 'Main' or @type = 'HomePage' or @type = 'LoginScreen')]",namespaces=namespaces)
+    screens = doc.xpath("//ns:screen[not(@type = 'Main' or @type = 'LoginScreen')]",namespaces=namespaces)
 
     determineTotalScreens(screens)
     determineReferencedScreens(doc, screens)
@@ -109,12 +109,16 @@ def main():
     # printList(unusedScreen)
 
     print()
-    print("Screen Metadata")
+    print("--- Screen Metadata ---")
     for screenItem in (sorted(screenItems.values(), key=operator.attrgetter('count'))):
         print(screenItem)
 
     print()
-    print("Screen Summary")
+    print("--- Errors ---")
+    printList(errors)
+
+    print()
+    print("--- Screen Summary ---")
     print("Total Screen Count:", len(allScreen))
     print("Referenced Screen Count:", len(referencedScreen))
     print("(Potential) Unused Screen Count:", len(unusedScreen))
