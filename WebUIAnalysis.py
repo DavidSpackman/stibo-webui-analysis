@@ -1,5 +1,7 @@
 import lxml.etree as etree
+import csv
 import operator
+import argparse
 
 referencedScreen = []
 allScreen = []
@@ -20,8 +22,11 @@ class Screen:
         self.resultScreenCount = 0
 
     def __str__(self):
-        #return f"ID: {self.id}, Type: {self.type}, Total: {self.totalCount}, subScreenTabPageCount: {self.subScreenTabPageCount}, mappingCount: {self.mappingCount}, forwardingScreenCount: {self.forwardingScreenCount}, resultScreenCount: {self.resultScreenCount}"
-        return f"ID: {self.id}, Type: {self.type}, Total: {self.totalCount}"
+        #return f"ID: {self.id}, Type: {self.type}, Total: {self.totalCount}"
+        return f"{self.id}, {self.type}, {self.totalCount}, {self.subScreenTabPageCount}, {self.mappingCount}, {self.forwardingScreenCount}, {self.resultScreenCount}"
+
+    def __iter__(self):
+        return iter([self.id, self.type, self.totalCount, self.subScreenTabPageCount, self.mappingCount, self.forwardingScreenCount, self.resultScreenCount])
 
 def initialise_class(screenID, ScreenType):
     global screenItems
@@ -53,10 +58,29 @@ def count_this_class(screenID, screenType):
 
         screenItems[screenID] = screenObject
 
-def printList(list):
-    list.sort()      
+def printList(list, listType, header):
+    print()
+    print(listType)
+    if header:
+        print(",".join(header)) 
     for object in list:
        print(object)
+
+def printScreenMetadataToScreen(header, screenItems):
+    print()
+    listType = "--- Screen Metadata ---"
+    printList(screenItems, listType, header)
+
+def printScreenMetadataToCSV(fileName, header, screenItems):
+    with open(fileName, 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+
+        # write the header
+        writer.writerow(header)
+
+        # write the data
+        for screenItem in screenItems:
+            writer.writerow(screenItem)
 
 def determineTotalScreens(screens):
     #Total Screens
@@ -110,6 +134,13 @@ def determineReferencedScreens(doc, screens):
 
 def main():
 
+    parser = argparse.ArgumentParser()
+    #parser.add_argument('--name', type=str, required=True)
+    parser.add_argument('--csv', action='store_true')
+    args = parser.parse_args()
+
+
+
     doc = etree.parse('webUI.xml')
     screens = doc.xpath("//ns:screen[not(@type = 'Main' or @type = 'LoginScreen')]",namespaces=namespaces)
 
@@ -125,15 +156,15 @@ def main():
     # printList(referencedScreen)
     # printList(unusedScreen)
 
-    print()
-    print("--- Screen Metadata ---")
+    header = ["ID", "Type", "Total", "subScreenTabPageCount", "mappingCount", "forwardingScreenCount", "resultScreenCount"]
     sortedScreenItems = sorted(screenItems.values(), key=operator.attrgetter('totalCount'))
-    for screenItem in sortedScreenItems:
-        print(screenItem)
+    printScreenMetadataToScreen(header, sortedScreenItems)
 
-    print()
-    print("--- Errors ---")
-    printList(errors)
+    if args.csv:
+        printScreenMetadataToCSV('WebUIAnalysis.csv', header, sortedScreenItems)
+
+    listType = "--- Errors ---"
+    printList(errors, listType, None)
 
     print()
     print("--- Screen Summary ---")

@@ -130,3 +130,4 @@ dmypy.json
 
 #webUI files
 webUI.xml
+WebUIAnalysis.csv
